@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
@@ -12,6 +13,29 @@ namespace VersionControl
 {
     public class VersionValidator
     {
+        #region Initiation
+        private static string connectionString;
+
+        static VersionValidator()
+        {
+            //read connection string from machine.config           
+            Configuration machineConfig = ConfigurationManager.OpenMachineConfiguration();
+            foreach (ConnectionStringSettings connectionstringmachine in machineConfig.ConnectionStrings.ConnectionStrings)
+            {
+                // u can have multiple connection strings
+                // read the connection string here
+                if (connectionstringmachine.Name.ToUpper() == "STOREDB")
+                {
+                    connectionString = connectionstringmachine.ConnectionString.ToString();
+                }
+                else
+                {
+                    connectionString = string.Empty;
+                }
+            }
+        }
+        #endregion
+
         public string ValidateVersion(string Type, string Name, string CurrentVersion)
         {
             string status = string.Empty;
@@ -35,8 +59,8 @@ namespace VersionControl
             //    InsertUpdateVersionInformation(Type, Name, CurrentVersion);
             //}
 
-
-            Sqldal sdl = new Sqldal(System.Configuration.ConfigurationManager.ConnectionStrings["Conn"].ConnectionString);
+            //Sqldal sdl = new Sqldal(System.Configuration.ConfigurationManager.ConnectionStrings["ConnVC"].ConnectionString);
+            Sqldal sdl = new Sqldal(connectionString);
             SqlCommand command = new SqlCommand();
 
             SqlParameter param1 = command.Parameters.Add("@Type", SqlDbType.VarChar);
@@ -61,7 +85,7 @@ namespace VersionControl
 
             status = sdl.ExecuteSPWithRerturnValue("spVersionValidator", CommandType.StoredProcedure, command);
 
-            if (!string.IsNullOrEmpty(status) && (status.ToUpper() == "SUCCESS" || status.ToUpper() == "NEW RECORD")) 
+            if (!string.IsNullOrEmpty(status) && (status.ToUpper() == "SUCCESS" || status.ToUpper() == "NEW RECORD"))
             {
                 InsertUpdateVersionInformation(Type, Name, CurrentVersion);// Insert/Update only in case of Success or New Record
             }
@@ -120,7 +144,9 @@ namespace VersionControl
             string myIP = Dns.GetHostByName(hostName).AddressList[0].ToString();
             //string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
             string userName = System.Environment.MachineName.ToString();
-            Sqldal sdl = new Sqldal(System.Configuration.ConfigurationManager.ConnectionStrings["Conn"].ConnectionString);
+
+            Sqldal sdl = new Sqldal(connectionString);
+            //Sqldal sdl = new Sqldal(System.Configuration.ConfigurationManager.ConnectionStrings["ConnVC"].ConnectionString);
 
             SqlParameter[] parameters = 
             {
